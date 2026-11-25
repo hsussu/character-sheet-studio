@@ -1,0 +1,7 @@
+interface:
+  display_name: "角色设定集工坊"
+  short_description: "照参考图分步生成完整角色设定集"
+  default_prompt: "使用 $character-sheet-studio 帮我完成……"
+
+policy:
+  allow_implicit_invocation: true

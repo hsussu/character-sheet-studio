@@ -1,0 +1,7 @@
+interface:
+  display_name: "角色设定集工坊 V2"
+  short_description: "设定集或资产图，两次确认出整套"
+  default_prompt: "使用 $character-sheet-studio 帮我完成……"
+
+policy:
+  allow_implicit_invocation: true

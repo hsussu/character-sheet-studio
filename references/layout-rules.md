@@ -121,7 +121,7 @@
 ```html
 <div class="sheet">
   <img src="hero.png"  style="position:absolute; left:8%;  top:6%;  width:62%;">
-  <img src="size:absolute;">
+  <img src="front.png" style="position:absolute; left:72%; top:8%;  width:24%;">
   <!-- 文字区用真实文本渲染，清晰可控 -->
   <div class="id-block" style="position:absolute; left:8%; bottom:6%;">…</div>
 </div>

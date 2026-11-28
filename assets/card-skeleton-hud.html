@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<!--
+  ============================================================
+  角色设定集 · 资料卡骨架（HUD 机能 UI 版 · V5 默认）
+  用法：不要手改。用 scripts/build_card.py 传一份 JSON 配置，
+       脚本会把下面所有 {{...}} 占位符替换掉，再渲染成 PNG。
+  占位符清单
+  ------------------------------------------------------------
+  图片
+    {{HERO}} {{TURN}} {{HEAD_BIG}} {{HEAD_EYE}} {{HEAD_LIP}} {{HEAD_SIDE}} {{HEAD_BACK}}
+    {{COST1}}..{{COST5}}  {{ACC1}}..{{ACC5}}  {{EXPR1}}..{{EXPR6}}
+  文案
+    {{EYEBROW}} {{NAME}} {{NO}} {{ROMAJI}} {{TAGLINE}} {{LEAD1}} {{LEAD2}} {{DATA_NO}}
+    {{DATA_ROWS}} {{CHIPS}} {{WORLD_ROWS}} {{PALETTE}}
+    {{TURN_LABELS}} {{HEAD_LABELS}} {{COST_LABELS}} {{ACC_LABELS}} {{EXPR_LABELS}}
+    {{SIGN_EN}} {{SIGN_CN}} {{SHEET_NO}} {{YEAR}} {{FOOT1}} {{FOOT2}}
+  颜色（脚本全局替换，不用手填）
+    #3F7F63 → 强调色（跟角色主色走）
+    #EDEDEE → 页面底（必须等于图格底）
+    #A9CBB5 → 星芒色
+  ============================================================
+-->
+<head>
+<meta charset="utf-8">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#EDEDEE}
+  .page{width:1440px;padding:24px 30px 20px;background:#EDEDEE;position:relative;
+        font-family:"Noto Sans CJK SC","Noto Sans SC",sans-serif;color:#1B2420;
+        display:grid;grid-template-columns:636px 1fr;column-gap:20px;align-items:start}
+
+  .star{position:absolute;color:#9FC0AC;line-height:1}
+  .star svg{display:block}
+
+  .left{position:relative;z-index:9}
+  .eyebrow{font-size:9px;letter-spacing:4.4px;color:#8A9990;margin-bottom:2px;display:flex;align-items:center;gap:10px}
+  .eyebrow:after{content:"";flex:1;height:1px;background:linear-gradient(90deg,#C3CFC7,transparent)}
+  .title{font-size:47px;font-weight:900;letter-spacing:5px;line-height:1.02}
+  .title span{font-size:11px;letter-spacing:3px;font-weight:600;color:#3F7F63;vertical-align:super;margin-left:6px}
+  .sub{display:flex;align-items:baseline;gap:12px;margin-top:7px}
+  .sub em{font-style:normal;font-size:12.5px;font-weight:600;letter-spacing:4px;color:#7E8F85}
+  .sub .tag{font-size:10px;letter-spacing:1.5px;color:#3F7F63;border-left:1px solid #C6D3CA;padding-left:12px}
+  .lead{font-size:12px;line-height:1.85;color:#5E6F66;margin-top:11px;letter-spacing:.6px}
+
+  .stage{position:relative;height:968px;margin-top:12px;overflow:visible}
+  .hero{position:absolute;left:-38px;top:0;width:716px;z-index:6;
+        -webkit-mask-image:
+             linear-gradient(90deg,transparent 0,#000 60px,#000 calc(100% - 58px),transparent 100%),
+             linear-gradient(180deg,transparent 0,#000 54px,#000 calc(100% - 15px),transparent 100%);
+        mask-image:
+             linear-gradient(90deg,transparent 0,#000 60px,#000 calc(100% - 58px),transparent 100%),
+             linear-gradient(180deg,transparent 0,#000 54px,#000 calc(100% - 15px),transparent 100%);
+        -webkit-mask-composite:source-in;mask-composite:intersect}
+
+  .info{margin-top:-12px;position:relative;z-index:14;background:rgba(247,249,248,.94);
+        border:1px solid #CBD6CF;padding:11px 13px 9px}
+  .info .ih{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+  .info .ih b{font-size:9.5px;letter-spacing:2.6px;color:#3F7F63;font-weight:800}
+  .info .ih s{flex:1;height:1px;background:#D8E0DA;text-decoration:none}
+  .info .ih i{font-style:normal;font-size:8px;letter-spacing:1.6px;color:#9AA8A0}
+  .grid{display:grid;grid-template-columns:66px 1fr;font-size:11.5px;line-height:1.4}
+  .row{display:contents}
+  .k{color:#8A9990;letter-spacing:1.4px;font-size:9.5px;padding:6px 0;border-top:1px solid #E1E7E2}
+  .v{color:#26312B;padding:5.5px 0;border-top:1px solid #E1E7E2}
+  .v b{font-weight:800}
+  .v .dim{color:#7E8F85}
+
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:13px}
+  .chip{font-size:9px;letter-spacing:1.2px;color:#4A6355;border:1px solid #C7D3CB;
+        padding:4px 9px;background:#F3F6F4}
+  .chip:before{content:"";display:inline-block;width:4px;height:4px;background:#7BAE92;margin-right:7px;vertical-align:middle}
+
+  .world{margin-top:13px;border-top:1px solid #D8E0DA;padding-top:9px}
+  .pt{font-size:8.5px;letter-spacing:2.4px;color:#8A9990;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+  .pt:after{content:"";flex:1;height:1px;background:#DEE6E0}
+  .wrow{display:grid;grid-template-columns:54px 1fr;font-size:10px;line-height:1.7;color:#4A6355;letter-spacing:.4px}
+  .wrow span{color:#9AA8A0;font-size:8.5px;letter-spacing:1.4px}
+
+  .palette{margin-top:12px;border-top:1px solid #D8E0DA;padding-top:9px}
+  .prow{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+  .sw i{display:block;height:24px;border:1px solid #D0D9D2}
+  .sw span{font-size:7.5px;letter-spacing:.4px;color:#8A9990;display:block;margin-top:4px}
+  .footnote{margin-top:14px;font-size:9.5px;line-height:1.8;color:#8A9990;letter-spacing:.5px;display:flex;justify-content:space-between;align-items:flex-end;gap:14px}
+  .footnote b{color:#3F7F63}
+
+  .right{display:flex;flex-direction:column;row-gap:16px;height:100%}
+  .panel{position:relative}
+  .bt{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+  .bt .no{font-size:8px;letter-spacing:1px;color:#F4F8F5;background:#3F7F63;padding:2.5px 5px;font-weight:700}
+  .bt b{font-size:11.5px;letter-spacing:2.4px;color:#1B2420;font-weight:800}
+  .bt s{text-decoration:none;font-size:8.5px;letter-spacing:2px;color:#A2B0A8;font-weight:600}
+  .bt .line{flex:1;height:1px;background:#CFDAD2;position:relative}
+  .bt .line:after{content:"";position:absolute;right:0;top:-2px;width:1px;height:5px;background:#CFDAD2}
+
+  .fig{background:#EDEDEE;overflow:hidden;border:1px solid #D3DCD5}
+  .fig img{width:100%;height:100%;object-fit:contain;display:block}
+  .cost img,.acc img{object-fit:cover;object-position:50% 50%}
+  .acc>.fig:nth-child(5) img{object-fit:cover;object-position:50% 44%}
+  .cost>.fig:nth-child(3) img{object-position:50% 50%}
+  .cost>.fig:nth-child(5) img{object-position:50% 92%}
+  .head .big{background:#EDEDEE}
+  .head .big img{object-position:50% 50%;
+        -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 10px,#000 calc(100% - 10px),transparent 100%),
+             linear-gradient(180deg,transparent 0,#000 9px,#000 calc(100% - 7px),transparent 100%);
+        mask-image:linear-gradient(90deg,transparent 0,#000 10px,#000 calc(100% - 10px),transparent 100%),
+             linear-gradient(180deg,transparent 0,#000 9px,#000 calc(100% - 7px),transparent 100%);
+        -webkit-mask-composite:source-in;mask-composite:intersect}
+
+  .turn .fig{height:412px}
+  .turn .fig img{object-fit:cover}
+  .lbl{display:grid;margin-top:5px;font-size:8px;letter-spacing:1.6px;color:#93A29A;text-align:center}
+  .lbl.c3{grid-template-columns:repeat(3,1fr)}
+
+  .head{display:grid;grid-template-columns:45fr 27.5fr 27.5fr;grid-template-rows:164px 164px;gap:3px;height:331px}
+  .head .big{grid-row:1/3;grid-column:1/2}
+
+  .cost{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;height:230px}
+  .acc{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;height:230px}
+  .expr{display:grid;grid-template-columns:repeat(6,1fr);gap:3px;height:148px}
+  .expr>.fig{height:148px}
+  .expr>.fig img{width:100%;height:148px;object-fit:cover;object-position:50% 44%}
+
+  .sign{position:relative;margin-top:auto;border-top:1px solid #D8E0DA;padding-top:10px;
+        display:flex;justify-content:space-between;align-items:flex-end}
+  .sign .sl{display:flex;flex-direction:column;gap:4px}
+  .sign .sl span{font-size:8px;letter-spacing:2.4px;color:#A2B0A8}
+  .sign .sl b{font-size:10.5px;letter-spacing:4px;color:#5E6F66;font-weight:700}
+  .sign .sr{font-size:8px;letter-spacing:2.6px;color:#B4C1B9}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- 星芒点缀（≤3 枚，都在空白区） -->
+  <div class="star" style="left:646px;top:8px">
+    <svg width="26" height="26" viewBox="0 0 26 26"><path d="M13 0 L14.6 10.4 L26 13 L14.6 15.6 L13 26 L11.4 15.6 L0 13 L11.4 10.4 Z" fill="#A9CBB5"/></svg>
+  </div>
+  <div class="star" style="right:14px;top:56px;opacity:.55">
+    <svg width="15" height="15" viewBox="0 0 26 26"><path d="M13 0 L14.6 10.4 L26 13 L14.6 15.6 L13 26 L11.4 15.6 L0 13 L11.4 10.4 Z" fill="#A9CBB5"/></svg>
+  </div>
+  <div class="star" style="left:652px;bottom:66px;opacity:.45">
+    <svg width="13" height="13" viewBox="0 0 26 26"><path d="M13 0 L14.6 10.4 L26 13 L14.6 15.6 L13 26 L11.4 15.6 L0 13 L11.4 10.4 Z" fill="#A9CBB5"/></svg>
+  </div>
+
+  <!-- ======== 左栏 ======== -->
+  <div class="left">
+    <div class="eyebrow">{{EYEBROW}}</div>
+    <div class="title">{{NAME}}<span>{{NO}}</span></div>
+    <div class="sub"><em>{{ROMAJI}}</em><span class="tag">{{TAGLINE}}</span></div>
+    <div class="lead">{{LEAD1}}<br>{{LEAD2}}</div>
+
+    <div class="stage">
+      <img class="hero" src="{{HERO}}" alt="">
+    </div>
+
+    <div class="info">
+      <div class="ih"><b>档案 DATA</b><s></s><i>{{DATA_NO}}</i></div>
+      <div class="grid">
+        {{DATA_ROWS}}
+      </div>
+    </div>
+
+    <div class="chips">
+      {{CHIPS}}
+    </div>
+
+    <div class="world">
+      <div class="pt">世界观档案　ARCHIVE</div>
+      {{WORLD_ROWS}}
+    </div>
+
+    <div class="palette">
+      <div class="pt">配色方案　PALETTE</div>
+      <div class="prow">
+        {{PALETTE}}
+      </div>
+    </div>
+
+    <div class="footnote">
+      <div>{{FOOT1}}<br><b>{{SIGN_EN}}</b> · CHARACTER SHEET · {{NO}}</div>
+      <div style="font-size:16px;color:#A9CBB5">✦</div>
+    </div>
+  </div>
+
+  <!-- ======== 右栏 ======== -->
+  <div class="right">
+
+    <div class="turn panel">
+      <div class="bt"><span class="no">01</span><b>多角度立绘</b><s>MULTI-ANGLE</s><span class="line"></span></div>
+      <div class="fig"><img src="{{TURN}}"></div>
+      <div class="lbl c3">{{TURN_LABELS}}</div>
+    </div>
+
+    <div class="panel">
+      <div class="bt"><span class="no">02</span><b>头部细节</b><s>HEAD DETAIL</s><span class="line"></span></div>
+      <div class="head">
+        <div class="fig big"><img src="{{HEAD_BIG}}"></div>
+        <div class="fig"><img src="{{HEAD_EYE}}"></div>
+        <div class="fig"><img src="{{HEAD_LIP}}"></div>
+        <div class="fig"><img src="{{HEAD_SIDE}}"></div>
+        <div class="fig"><img src="{{HEAD_BACK}}"></div>
+      </div>
+      <div class="lbl" style="grid-template-columns:45fr 27.5fr 27.5fr 27.5fr 27.5fr;display:grid;gap:3px">
+        {{HEAD_LABELS}}
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="bt"><span class="no">03</span><b>服装细节</b><s>CLOTHING DETAIL</s><span class="line"></span></div>
+      <div class="cost">
+        <div class="fig"><img src="{{COST1}}"></div><div class="fig"><img src="{{COST2}}"></div>
+        <div class="fig"><img src="{{COST3}}"></div><div class="fig"><img src="{{COST4}}"></div>
+        <div class="fig"><img src="{{COST5}}"></div>
+      </div>
+      <div class="lbl" style="grid-template-columns:repeat(5,1fr)">
+        {{COST_LABELS}}
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="bt"><span class="no">04</span><b>配饰和道具</b><s>ACCESSORIES &amp; PROPS</s><span class="line"></span></div>
+      <div class="acc">
+        <div class="fig"><img src="{{ACC1}}"></div><div class="fig"><img src="{{ACC2}}"></div>
+        <div class="fig"><img src="{{ACC3}}"></div><div class="fig"><img src="{{ACC4}}"></div>
+        <div class="fig"><img src="{{ACC5}}"></div>
+      </div>
+      <div class="lbl" style="grid-template-columns:repeat(5,1fr)">
+        {{ACC_LABELS}}
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="bt"><span class="no">05</span><b>表情</b><s>EXPRESSIONS</s><span class="line"></span></div>
+      <div class="expr">
+        <div class="fig"><img src="{{EXPR1}}"></div><div class="fig"><img src="{{EXPR2}}"></div>
+        <div class="fig"><img src="{{EXPR3}}"></div><div class="fig"><img src="{{EXPR4}}"></div>
+        <div class="fig"><img src="{{EXPR5}}"></div><div class="fig"><img src="{{EXPR6}}"></div>
+      </div>
+      <div class="lbl" style="grid-template-columns:repeat(6,1fr)">
+        {{EXPR_LABELS}}
+      </div>
+    </div>
+
+    <div class="sign">
+      <div class="sl">
+        <span>{{FOOT2}}</span>
+        <b>{{SIGN_CN}}</b>
+      </div>
+      <div class="sr">{{SHEET_NO}}　/　{{YEAR}}</div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

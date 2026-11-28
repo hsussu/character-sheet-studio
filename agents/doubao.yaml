@@ -1,6 +1,6 @@
 interface:
-  display_name: "角色设定集工坊 V2"
-  short_description: "设定集或资产图，两次确认出整套"
+  display_name: "角色设定集工坊 V5"
+  short_description: "资料卡/资产图；影棚光主图+HUD排版"
   default_prompt: "使用 $character-sheet-studio 帮我完成……"
 
 policy:

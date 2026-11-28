@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<!--
+  资料卡骨架 · 平版（备选，默认用 card-skeleton-hud.html）
+  用法：用户明确要「更素 / 不要 UI 感」时才用这份；默认走 HUD 版 + scripts/build_card.py
+  画布 1440 宽，高度由内容撑开（实测 1733 CSS → 输出 2160×2645，比例 0.817）
+  渲染：playwright + device_scale_factor=1.5 + --no-sandbox，字体 Noto Sans CJK SC
+
+  占位符（换成同目录图片，路径相对本文件）：
+    {{MAIN.png}}       主视觉整块：带同色浅灰背景 + 原生淡影；宽 700 / left -40 / top 14
+    {{TURN.png}}       三视图：正/侧/背等距，脚底共线
+    {{HEAD_BIG.png}}   头肩半身：头顶到锁骨，横构图
+    {{HEAD_EYE.png}}   单眼微距      {{HEAD_LIP.png}}  唇齿微距
+    {{HEAD_SIDE.png}}  45°侧脸       {{HEAD_BACK.png}} 后脑发型
+    {{CLOTH_1..5}}     衣领/袖口/腰部/面料/下摆（平铺实物，画面无人体）
+    {{ACC_1..5}}       腰挂/耳饰/手饰/头饰/武器（顺序锁死，缺类跳过）
+    {{EXPR_1..6}}      微笑/开心/生气/俏皮/清冷/疑惑
+
+  唯一必须手改的地方：body 与 .page 的底色（#E9E9EC）必须等于主视觉图的背景采样值，
+  否则方块边会露出来。换图时这两处同步改。
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#E9E9EC}
+  .page{width:1440px;padding:26px 32px 22px;background:#E9E9EC;
+        font-family:"Noto Sans CJK SC","Noto Sans SC",sans-serif;color:#1A1720;
+        display:grid;grid-template-columns:633px 1fr;column-gap:22px;align-items:start}
+
+  /* ---------- 左栏 ---------- */
+  .left{position:relative;z-index:9}
+  .eyebrow{font-size:9.5px;letter-spacing:4px;color:#A79EB4;margin-bottom:2px}
+  .title{font-size:46px;font-weight:900;letter-spacing:4px;line-height:1.05}
+  .sub{display:flex;align-items:baseline;gap:12px;margin-top:6px}
+  .sub em{font-style:normal;font-size:13px;font-weight:600;letter-spacing:5px;color:#948BA4}
+  .sub .tag{font-size:10px;letter-spacing:1.5px;color:#7C5CD6;border-left:1px solid #DCD6E6;padding-left:12px}
+  .lead{font-size:12px;line-height:1.9;color:#6E6478;margin-top:10px;letter-spacing:.6px}
+  .lead i{font-style:normal;color:#7C5CD6;font-weight:700}
+
+  .stage{position:relative;height:966px;margin-top:4px;overflow:visible}
+  .hero{position:absolute;left:-40px;top:14px;width:700px;z-index:6;
+        -webkit-mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 40px),transparent 100%);
+        mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 40px),transparent 100%);
+}
+
+  .info{margin-top:8px;position:relative;z-index:12;border-top:1px solid #D6D2DC}
+  .row{display:grid;grid-template-columns:66px 1fr;padding:5.5px 0;border-bottom:1px solid #DCD8E2;
+       font-size:11.5px;line-height:1.45}
+  .row .k{color:#948BA4;letter-spacing:1.4px;font-size:9.5px;padding-top:2px}
+  .row .v{color:#2A2430}
+  .row .v b{font-weight:800}
+
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}
+  .chip{font-size:9.5px;letter-spacing:.8px;color:#5F5568;border:1px solid #D2CCDE;
+        border-radius:100px;padding:3.5px 10px;background:#F6F5F9}
+  .world{margin-top:14px;border-top:1px solid #E4E0E9;padding-top:9px}
+  .wrow{display:grid;grid-template-columns:56px 1fr;font-size:10px;line-height:1.85;color:#5F5568;letter-spacing:.4px}
+  .wrow span{color:#A79EB4;font-size:9px;letter-spacing:1.4px}
+  .palette{margin-top:14px;border-top:1px solid #E4E0E9;padding-top:10px}
+  .pt{font-size:9px;letter-spacing:2.2px;color:#948BA4;font-weight:700;margin-bottom:8px}
+  .prow{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+  .sw i{display:block;height:26px;border:1px solid #D4CFDE}
+  .sw span{font-size:8px;letter-spacing:.5px;color:#8E8599;display:block;margin-top:4px}
+  .footnote{margin-top:16px;font-size:10px;line-height:1.9;color:#948BA4;letter-spacing:.6px}
+  .footnote b{color:#7C5CD6}
+
+  /* ---------- 右栏 ---------- */
+  .right{display:flex;flex-direction:column;row-gap:18px;height:100%}
+  .bt{padding-left:78px;font-size:9.5px;letter-spacing:2.4px;color:#948BA4;font-weight:700;
+      display:flex;align-items:center;gap:7px;margin-bottom:6px}
+  .bt b{color:#2A2430;font-size:11px;letter-spacing:2px}
+  .bt s{text-decoration:none;color:#C4BDCF;font-weight:400}
+  .bt .num{color:#C9B4E8;font-weight:700;letter-spacing:1px}
+
+  .fig{background:#DDDCE4;overflow:hidden}
+  .fig img{width:100%;height:100%;object-fit:cover;display:block}
+
+  /* ① 三视图 */
+  .turn .fig{height:420px}
+  .lbl{display:grid;margin-top:5px;font-size:8.5px;letter-spacing:1.4px;color:#A79EB4;text-align:center}
+  .lbl.c3{grid-template-columns:repeat(3,1fr)}
+
+  /* ② 头部 5 格 */
+  .head{display:grid;grid-template-columns:45fr 27.5fr 27.5fr;grid-template-rows:168px 168px;gap:3px;
+        height:339px}
+  .head .big{grid-row:1/3;grid-column:1/2}
+  .head .big img{object-position:50% 50%}
+  .head .s1{grid-row:1;grid-column:2}
+  .head .s2{grid-row:1;grid-column:3}
+  .head .s3{grid-row:2;grid-column:2}
+  .head .s4{grid-row:2;grid-column:3}
+
+  /* ③ 服装 5 格 */
+  .cost{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;height:236px}
+
+  /* ④ 配饰 5 格 */
+  .acc{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;height:236px}
+
+  /* ⑤ 表情 6 格 */
+  .expr{display:grid;grid-template-columns:repeat(6,1fr);gap:3px;height:152px}
+  .expr>.fig{height:152px}
+  .expr>.fig img{width:100%;height:152px;object-fit:cover;object-position:50% 44%}
+
+  .sign{margin-top:auto;border-top:1px solid #E4E0E9;padding-top:12px;
+        display:flex;justify-content:flex-end}
+  .sign-in{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+  .sign-in span{font-size:11px;letter-spacing:5px;color:#8E8599}
+  .sign-in i{font-style:normal;font-size:9px;letter-spacing:3px;color:#C4BDCF}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ======== 左栏 ======== -->
+  <div class="left">
+    <div class="eyebrow">CHARACTER DESIGN　·　人物设定</div>
+    <div class="title">霖云</div>
+    <div class="sub"><em>LIN YUN</em><span class="tag">现代科技修仙 · 雷暴执行司 · 岚雷者</span></div>
+    <div class="lead">「拔刀之前，你可以先道歉。」— 霖云<br>她在雷暴里执勤第七年，队里最安静的那一个。</div>
+
+    <div class="stage">
+      <img class="hero" src="{{MAIN.png}}" alt="">
+    </div>
+
+    <div class="info">
+      <div class="row"><div class="k">姓　名</div><div class="v"><b>霖云</b>　女 · 19 岁</div></div>
+      <div class="row"><div class="k">身　高</div><div class="v">167 cm　／　A 型</div></div>
+      <div class="row"><div class="k">属　性</div><div class="v">雷暴执行司 · 岚雷者（雷系）</div></div>
+      <div class="row"><div class="k">性　格</div><div class="v">忧郁 · 克制 · 护短</div></div>
+      <div class="row"><div class="k">武　器</div><div class="v">雷弧长刀 · 体侧反握、刀尖越右肩</div></div>
+      <div class="row"><div class="k">装　备</div><div class="v">腰挂白猫玩偶 / 耳骨夹 / 紫晶颈饰 / 紫发夹</div></div>
+      <div class="row"><div class="k">讨　厌</div><div class="v">被当成兵器使用</div></div>
+    </div>
+
+    <div class="chips">
+      <span class="chip">雷暴执行司</span><span class="chip">岚雷者</span>
+      <span class="chip">科技修仙</span><span class="chip">少女刀客</span><span class="chip">淡紫透白</span>
+    </div>
+
+    <div class="world">
+      <div class="pt">世界观档案　ARCHIVE</div>
+      <div class="wrow"><span>阵　营</span>雷暴执行司 · 第七处置队</div>
+      <div class="wrow"><span>职　责</span>处置失控雷核，封锁雷暴缺口</div>
+      <div class="wrow"><span>同　伴</span>白猫「雷囚」— 她的封印载体，也是唯一会等她的人</div>
+      <div class="wrow"><span>印　记</span>左眼下泪痣，雷弧灼伤留下的旧痕</div>
+    </div>
+
+    <div class="palette">
+      <div class="pt">配色方案　PALETTE</div>
+      <div class="prow">
+        <div class="sw"><i style="background:#F3EFF9"></i><span>淡紫透光</span></div>
+        <div class="sw"><i style="background:#C9B4E8"></i><span>浅电紫</span></div>
+        <div class="sw"><i style="background:#8B6BD4"></i><span>雷芯紫</span></div>
+        <div class="sw"><i style="background:#2A2430"></i><span>深墨</span></div>
+        <div class="sw"><i style="background:#3B3145"></i><span>暗紫</span></div>
+        <div class="sw"><i style="background:#B23A57"></i><span>雷弧绯</span></div>
+      </div>
+    </div>
+
+    <div class="footnote">
+      世界很大，而她只想守住这一条街的<b>灯</b>。<br>
+      LIN YUN　·　CHARACTER SHEET　·　NO.001
+    </div>
+  </div>
+
+  <!-- ======== 右栏 ======== -->
+  <div class="right">
+
+    <div class="turn">
+      <div class="bt"><b>多角度立绘</b><s>MULTI-ANGLE</s><span class="num">01</span></div>
+      <div class="fig"><img src="{{TURN.png}}"></div>
+      <div class="lbl c3"><span>正面</span><span>侧面</span><span>背面</span></div>
+    </div>
+
+    <div>
+      <div class="bt"><b>头部细节</b><s>HEAD DETAIL</s><span class="num">02</span></div>
+      <div class="head">
+        <div class="fig big"><img src="{{HEAD_BIG.png}}"></div>
+        <div class="fig s1"><img src="{{HEAD_EYE.png}}"></div>
+        <div class="fig s2"><img src="{{HEAD_LIP.png}}"></div>
+        <div class="fig s3"><img src="{{HEAD_SIDE.png}}"></div>
+        <div class="fig s4"><img src="{{HEAD_BACK.png}}"></div>
+      </div>
+      <div class="lbl" style="grid-template-columns:45fr 27.5fr 27.5fr 27.5fr 27.5fr;display:grid;gap:3px">
+        <span>正面</span><span>眼部</span><span>唇齿</span><span>侧脸</span><span>背发</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="bt"><b>服装细节</b><s>CLOTHING DETAIL</s><span class="num">03</span></div>
+      <div class="cost">
+        <div class="fig"><img src="{{CLOTH_1.png}}"></div><div class="fig"><img src="{{CLOTH_2.png}}"></div>
+        <div class="fig"><img src="{{CLOTH_3.png}}"></div><div class="fig"><img src="{{CLOTH_4.png}}"></div>
+        <div class="fig"><img src="{{CLOTH_5.png}}"></div>
+      </div>
+      <div class="lbl" style="grid-template-columns:repeat(5,1fr)">
+        <span>衣领</span><span>袖口</span><span>腰部</span><span>面料</span><span>下摆</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="bt"><b>配饰和道具</b><s>ACCESSORIES &amp; PROPS</s><span class="num">04</span></div>
+      <div class="acc">
+        <div class="fig"><img src="{{ACC_1.png}}"></div><div class="fig"><img src="{{ACC_2.png}}"></div>
+        <div class="fig"><img src="{{ACC_3.png}}"></div><div class="fig"><img src="{{ACC_4.png}}"></div>
+        <div class="fig"><img src="{{ACC_5.png}}"></div>
+      </div>
+      <div class="lbl" style="grid-template-columns:repeat(5,1fr)">
+        <span>腰部挂饰</span><span>耳部饰品</span><span>手部饰品</span><span>头部发饰</span><span>武器</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="bt"><b>表情</b><s>EXPRESSIONS</s><span class="num">05</span></div>
+      <div class="expr">
+        <div class="fig"><img src="{{EXPR_1.png}}"></div><div class="fig"><img src="{{EXPR_2.png}}"></div>
+        <div class="fig"><img src="{{EXPR_3.png}}"></div><div class="fig"><img src="{{EXPR_4.png}}"></div>
+        <div class="fig"><img src="{{EXPR_5.png}}"></div><div class="fig"><img src="{{EXPR_6.png}}"></div>
+      </div>
+      <div class="lbl" style="grid-template-columns:repeat(6,1fr)">
+        <span>微笑</span><span>开心</span><span>生气</span><span>俏皮</span><span>清冷</span><span>疑惑</span>
+      </div>
+    </div>
+
+    <div class="sign">
+      <div class="sign-in">
+        <span>以少女之名 · 行无界之路</span>
+        <i>A BRIGHTER SELF</i>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>
